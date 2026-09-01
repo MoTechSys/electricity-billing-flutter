@@ -16,6 +16,14 @@
 | قاعدة البيانات | SQLite محليّة عبر Drift |
 | الخدمات السحابية | **لا يوجد** — التطبيق محلي بالكامل |
 
+### 📚 الوثائق
+
+| الملف | المحتوى |
+|---|---|
+| [`CHANGELOG.md`](CHANGELOG.md) | سجل التغييرات وروابط تحميل كل إصدار |
+| [`docs/STORAGE_AND_PERMISSIONS.md`](docs/STORAGE_AND_PERMISSIONS.md) | المجلد العام، `MediaStore`، منطق الصلاحيات |
+| [`docs/INVOICE_FORENSICS.md`](docs/INVOICE_FORENSICS.md) | تحليل الفاتورة وقواعد تعديلها الملزمة |
+
 ## 📞 التواصل
 
 | القناة | العنوان |
@@ -74,7 +82,23 @@ Documents/
 |---|---|
 | `android/.../PublicStoragePlugin.kt` | الكتابة عبر `MediaStore` (API 29+) أو مسار ملف تقليدي (API ≤ 28) |
 | `android/.../MainActivity.kt` | تسجيل `MethodChannel` |
+| `android/.../res/values/strings.xml` | اسم التطبيق الظاهر على الجهاز — انظر التنبيه أدناه |
 | `lib/core/services/public_storage.dart` | واجهة Dart + إدارة الصلاحية |
+
+> ⚠️ **تنبيه: اسم التطبيق يجب أن يبقى في `strings.xml`.**
+> كان التطبيق يظهر على الجهاز باسم **"My App"** لأن `android:label` في
+> المانيفست كان نصاً حرفياً، وأدوات البناء الآلية تعيد كتابته. الحل هو
+> نقل الاسم إلى مورد نصّي:
+>
+> ```xml
+> <!-- android/app/src/main/res/values/strings.xml -->
+> <string name="app_name">فواتير الكهرباء</string>
+> ```
+> ```xml
+> <!-- AndroidManifest.xml -->
+> <application android:label="@string/app_name" …>
+> ```
+> **لا تُرجع النص الحرفي إلى `android:label` أبداً** — سيعود الخطأ.
 
 **نقطة مهمة في الصلاحيات:** على API 29+ **لا يُطلب من المستخدم أي
 صلاحية** لأن التطبيق هو مُنشئ الملف، ولذلك حُدّد في المانيفست:
