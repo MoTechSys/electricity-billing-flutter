@@ -75,7 +75,8 @@ class InvoiceArchiveScreen extends ConsumerWidget {
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 0) +
+                  padding:
+                      const EdgeInsets.fromLTRB(14, 4, 14, 0) +
                       kBottomNavPadding,
                   itemCount: rows.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
@@ -92,15 +93,12 @@ class InvoiceArchiveScreen extends ConsumerWidget {
   Widget _chip(WidgetRef ref, String label, String? value, String? current) {
     final active = current == value;
     return GestureDetector(
-      onTap: () =>
-          ref.read(invoiceStatusFilterProvider.notifier).state = value,
+      onTap: () => ref.read(invoiceStatusFilterProvider.notifier).state = value,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           gradient: active
-              ? const LinearGradient(
-                  colors: [AppColors.navy2, AppColors.navy],
-                )
+              ? const LinearGradient(colors: [AppColors.navy2, AppColors.navy])
               : null,
           color: active ? null : Colors.white,
           borderRadius: BorderRadius.circular(999),
@@ -149,10 +147,7 @@ class _InvoiceTile extends ConsumerWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.navy.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(8),
@@ -181,8 +176,11 @@ class _InvoiceTile extends ConsumerWidget {
                     value: 'open',
                     child: Row(
                       children: [
-                        Icon(Icons.visibility_rounded,
-                            size: 18, color: AppColors.btnBlue1),
+                        Icon(
+                          Icons.visibility_rounded,
+                          size: 18,
+                          color: AppColors.btnBlue1,
+                        ),
                         SizedBox(width: 8),
                         Text('عرض / طباعة'),
                       ],
@@ -192,8 +190,11 @@ class _InvoiceTile extends ConsumerWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline_rounded,
-                            size: 18, color: AppColors.btnRed2),
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: AppColors.btnRed2,
+                        ),
                         SizedBox(width: 8),
                         Text('حذف'),
                       ],
@@ -217,8 +218,11 @@ class _InvoiceTile extends ConsumerWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.date_range_rounded,
-                  size: 13, color: AppColors.textMuted),
+              const Icon(
+                Icons.date_range_rounded,
+                size: 13,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(

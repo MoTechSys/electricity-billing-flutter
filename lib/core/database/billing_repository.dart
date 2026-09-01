@@ -113,12 +113,14 @@ class BillingRepository {
     return select.watch();
   }
 
-  Future<SubscriberRow?> getSubscriber(String id) =>
-      (_db.select(_db.subscribers)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+  Future<SubscriberRow?> getSubscriber(String id) => (_db.select(
+    _db.subscribers,
+  )..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<List<SubscriberRow>> searchSubscribers(String query,
-      {int limit = 30}) {
+  Future<List<SubscriberRow>> searchSubscribers(
+    String query, {
+    int limit = 30,
+  }) {
     final q = query.trim();
     final select = _db.select(_db.subscribers)
       ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
@@ -147,7 +149,9 @@ class BillingRepository {
   }) async {
     final now = DateTime.now();
     final id = generateId();
-    await _db.into(_db.subscribers).insert(
+    await _db
+        .into(_db.subscribers)
+        .insert(
           SubscribersCompanion.insert(
             id: id,
             subscriberName: subscriberName,
@@ -181,10 +185,11 @@ class BillingRepository {
 
   Future<int> countInvoicesOf(String subscriberId) async {
     final expr = _db.invoices.id.count();
-    final row = await (_db.selectOnly(_db.invoices)
-          ..addColumns([expr])
-          ..where(_db.invoices.subscriberId.equals(subscriberId)))
-        .getSingle();
+    final row =
+        await (_db.selectOnly(_db.invoices)
+              ..addColumns([expr])
+              ..where(_db.invoices.subscriberId.equals(subscriberId)))
+            .getSingle();
     return row.read(expr) ?? 0;
   }
 
@@ -192,17 +197,18 @@ class BillingRepository {
   // الفواتير
   // ------------------------------------------------------------------
 
-  Future<InvoiceRow?> getInvoice(String id) =>
-      (_db.select(_db.invoices)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+  Future<InvoiceRow?> getInvoice(String id) => (_db.select(
+    _db.invoices,
+  )..where((t) => t.id.equals(id))).getSingleOrNull();
 
   /// آخر قراءة حالية للمشترك (لتعبئة القراءة السابقة تلقائياً).
   Future<double?> lastReadingOf(String subscriberId) async {
-    final row = await (_db.select(_db.invoices)
-          ..where((t) => t.subscriberId.equals(subscriberId))
-          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (_db.select(_db.invoices)
+              ..where((t) => t.subscriberId.equals(subscriberId))
+              ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+              ..limit(1))
+            .getSingleOrNull();
     return row?.currentReading;
   }
 
@@ -217,8 +223,7 @@ class BillingRepository {
         _db.subscribers,
         _db.subscribers.id.equalsExp(_db.invoices.subscriberId),
       ),
-    ])
-      ..orderBy([OrderingTerm.desc(_db.invoices.createdAt)]);
+    ])..orderBy([OrderingTerm.desc(_db.invoices.createdAt)]);
 
     if (status != null && status.isNotEmpty) {
       select.where(_db.invoices.status.equals(status));
@@ -233,15 +238,15 @@ class BillingRepository {
     }
 
     return select.watch().map(
-          (rows) => rows
-              .map(
-                (r) => InvoiceWithSubscriber(
-                  r.readTable(_db.invoices),
-                  r.readTableOrNull(_db.subscribers),
-                ),
-              )
-              .toList(),
-        );
+      (rows) => rows
+          .map(
+            (r) => InvoiceWithSubscriber(
+              r.readTable(_db.invoices),
+              r.readTableOrNull(_db.subscribers),
+            ),
+          )
+          .toList(),
+    );
   }
 
   Future<String> insertInvoice(InvoicesCompanion companion) async {
@@ -256,13 +261,13 @@ class BillingRepository {
   /// رقم فاتورة تسلسلي داخل الشهر — INV-YYYY-MM-NNNN
   Future<String> nextInvoiceNumber() async {
     final now = DateTime.now();
-    final prefix =
-        'INV-${now.year}-${now.month.toString().padLeft(2, '0')}-';
-    final last = await (_db.select(_db.invoices)
-          ..where((t) => t.invoiceNumber.like('$prefix%'))
-          ..orderBy([(t) => OrderingTerm.desc(t.invoiceNumber)])
-          ..limit(1))
-        .getSingleOrNull();
+    final prefix = 'INV-${now.year}-${now.month.toString().padLeft(2, '0')}-';
+    final last =
+        await (_db.select(_db.invoices)
+              ..where((t) => t.invoiceNumber.like('$prefix%'))
+              ..orderBy([(t) => OrderingTerm.desc(t.invoiceNumber)])
+              ..limit(1))
+            .getSingleOrNull();
     final seq = last == null
         ? 1
         : (int.tryParse(last.invoiceNumber.substring(prefix.length)) ?? 0) + 1;
@@ -276,10 +281,7 @@ class BillingRepository {
   Stream<DashboardStats> watchStats() {
     // نراقب التغييرات على الجدولين ونعيد الحساب عبر استعلامات مجمّعة.
     return _db
-        .customSelect(
-          'SELECT 1',
-          readsFrom: {_db.subscribers, _db.invoices},
-        )
+        .customSelect('SELECT 1', readsFrom: {_db.subscribers, _db.invoices})
         .watch()
         .asyncMap((_) => _computeStats());
   }
@@ -311,15 +313,18 @@ class BillingRepository {
 
     // مجاميع آخر 7 أيام
     final today = DateTime.now();
-    final start = DateTime(today.year, today.month, today.day)
-        .subtract(const Duration(days: 6));
-    final rows = await (_db.select(_db.invoices)
-          ..where(
-            (t) =>
-                t.status.equals(InvoiceStatus.issued) &
-                t.createdAt.isBiggerOrEqualValue(start),
-          ))
-        .get();
+    final start = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).subtract(const Duration(days: 6));
+    final rows =
+        await (_db.select(_db.invoices)..where(
+              (t) =>
+                  t.status.equals(InvoiceStatus.issued) &
+                  t.createdAt.isBiggerOrEqualValue(start),
+            ))
+            .get();
 
     final buckets = <DateTime, double>{
       for (var i = 0; i < 7; i++) start.add(Duration(days: i)): 0,
@@ -527,8 +532,9 @@ class BillingRepository {
               currency: '${m['currency'] ?? 'ريال'}',
               status: '${m['status'] ?? InvoiceStatus.draft}',
               notes: '${m['notes'] ?? ''}',
-              issuedAt:
-                  m['issuedAt'] == null ? null : _parseDate(m['issuedAt']),
+              issuedAt: m['issuedAt'] == null
+                  ? null
+                  : _parseDate(m['issuedAt']),
               createdAt: _parseDate(m['createdAt']),
               updatedAt: _parseDate(m['updatedAt']),
             ),

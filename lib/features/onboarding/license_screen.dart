@@ -59,11 +59,7 @@ class _LicenseScreenState extends State<LicenseScreen> {
           gradient: LinearGradient(
             begin: Alignment(-0.7, -1),
             end: Alignment(0.7, 1),
-            colors: [
-              Color(0xFF0B1437),
-              Color(0xFF13205A),
-              Color(0xFF1B2D7A),
-            ],
+            colors: [Color(0xFF0B1437), Color(0xFF13205A), Color(0xFF1B2D7A)],
             stops: [0.0, 0.45, 1.0],
           ),
         ),
@@ -141,7 +137,9 @@ class _LicenseScreenState extends State<LicenseScreen> {
                           onChanged: (_) {
                             if (_error != null) setState(() => _error = null);
                           },
-                          inputFormatters: [LengthLimitingTextInputFormatter(40)],
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(40),
+                          ],
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,

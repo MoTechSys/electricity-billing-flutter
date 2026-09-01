@@ -1,6 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ══ صلاحيات التخزين ═══════════════════════════════════════════════
+         منذ Android 10 (API 29) لا يحتاج التطبيق أي صلاحية لإنشاء ملفات
+         يملكها في الذاكنة المشتركة عبر MediaStore، لذا حُدّد
+         `maxSdkVersion="28"` فلا يُطالب مستخدمو الأجهزة الحديثة بصلاحية
+         لا معنى لها. أما أجهزة API ≤ 28 فتحتاج الصلاحية فعلاً لكتابة
+         مجلد عام، ولذلك أُبقيت.
+         المرجع: developer.android.com/training/data-storage/shared/media -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <application
-        android:label="My App"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:extractNativeLibs="true">
@@ -41,6 +56,24 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+
+        <!-- ══ قابلية رؤية التطبيقات الخارجية ═══════════════════════════
+             منذ Android 11 (API 30) لا يرى التطبيق التطبيقات المثبَّتة إلا
+             ما يُعلن عنه هنا. بدون هذه الكتلة يفشل `url_launcher` بصمت مع
+             `canLaunchUrl` = false، فلا يفتح واتساب ولا المتصفح.
+             المرجع: developer.android.com/training/package-visibility -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
         </intent>
     </queries>
 </manifest>

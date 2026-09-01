@@ -96,8 +96,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   }
 
   Future<void> _refreshOptions(String query) async {
-    final subs =
-        await ref.read(repositoryProvider).searchSubscribers(query, limit: 20);
+    final subs = await ref
+        .read(repositoryProvider)
+        .searchSubscribers(query, limit: 20);
     if (mounted) setState(() => _options = subs);
   }
 
@@ -244,9 +245,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     if (issue) {
       context.push('/invoices/$id/print');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ المسودة بنجاح')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم حفظ المسودة بنجاح')));
       context.go('/invoices/archive');
     }
   }
@@ -444,8 +445,11 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.info_outline_rounded,
-                    size: 15, color: AppColors.statGreen),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 15,
+                  color: AppColors.statGreen,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -594,11 +598,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   onChanged: (_) => _scheduleCalc(),
                 ),
                 const SizedBox(height: 12),
-                LabeledField(
-                  label: 'ملاحظات',
-                  controller: _notes,
-                  maxLines: 3,
-                ),
+                LabeledField(label: 'ملاحظات', controller: _notes, maxLines: 3),
               ],
             ),
           ),
@@ -703,9 +703,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             decoration: BoxDecoration(
               color: AppColors.navy.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.navy.withValues(alpha: 0.12),
-              ),
+              border: Border.all(color: AppColors.navy.withValues(alpha: 0.12)),
             ),
             child: RichText(
               text: TextSpan(
@@ -742,8 +740,11 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     ),
     child: Row(
       children: [
-        const Icon(Icons.error_outline_rounded,
-            size: 18, color: AppColors.btnRed2),
+        const Icon(
+          Icons.error_outline_rounded,
+          size: 18,
+          color: AppColors.btnRed2,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

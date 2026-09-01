@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -11,8 +12,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme.dart';
+import '../../core/app_info.dart';
 import '../../core/database/billing_repository.dart';
 import '../../core/providers.dart';
+import '../../core/services/public_storage.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_shell.dart';
 import '../../core/widgets/labeled_field.dart';
 import '../../core/widgets/luxe_button.dart';
@@ -39,14 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [
-      _company,
-      _subtitle,
-      _title,
-      _footer,
-      _price,
-      _currency,
-    ]) {
+    for (final c in [_company, _subtitle, _title, _footer, _price, _currency]) {
       c.dispose();
     }
     super.dispose();
@@ -75,8 +72,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
     if (!mounted) return;
     setState(() => _saving = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم حفظ الإعدادات')));
+  }
+
+  /// تصدير النسخة الاحتياطية إلى **مجلد عام مخصّص** (أسلوب واتساب):
+  /// `Documents/فواتير الكهرباء/النسخ الاحتياطي/`.
+  ///
+  /// يطلب الصلاحية أولاً إن كان النظام يحتاجها (Android ≤ 9 فقط)، وإن رفض
+  /// المستخدم أوضحنا له السبب مع زر يفتح إعدادات التطبيق.
+  Future<void> _exportToFolder() async {
+    setState(() => _busy = 'folder');
+    try {
+      final json = await ref.read(repositoryProvider).exportJson();
+      final name = backupFileName();
+      final bytes = Uint8List.fromList(utf8.encode(json));
+
+      final outcome = await PublicStorage.save(
+        fileName: name,
+        bytes: bytes,
+        mimeType: 'application/json',
+        subDir: AppInfo.backupsSubDir,
+      );
+
+      if (!mounted) return;
+      if (outcome.ok) {
+        _showSaved(outcome.path);
+      } else if (outcome.denied) {
+        await _showPermissionSheet();
+      } else {
+        _snack('تعذّر الحفظ في المجلد: ${outcome.message}');
+      }
+    } catch (e) {
+      _snack('تعذّر تصدير النسخة الاحتياطية');
+    } finally {
+      if (mounted) setState(() => _busy = '');
+    }
+  }
+
+  /// نافذة توضيحية عند رفض الصلاحية.
+  Future<void> _showPermissionSheet() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('صلاحية الوصول إلى الملفات'),
+        content: const Text(
+          'لحفظ الملف في مجلد يمكنك الوصول إليه من مدير الملفات، يحتاج '
+          'التطبيق صلاحية الوصول إلى الملفات. لن تُقرأ أي ملفات أخرى، '
+          'والصلاحية تُستخدم للكتابة فقط.',
+          style: TextStyle(height: 1.8),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('لاحقًا'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              PublicStorage.openSettings();
+            },
+            child: const Text(
+              'فتح الإعدادات',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSaved(String path) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم حفظ الإعدادات')),
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'تم الحفظ في المجلد',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 3),
+            Text(path, style: const TextStyle(fontSize: 11.5)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -84,9 +167,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _busy = 'export');
     try {
       final json = await ref.read(repositoryProvider).exportJson();
-      final stamp = DateTime.now();
-      final name =
-          'motech-billing-backup-${stamp.year}${stamp.month.toString().padLeft(2, '0')}${stamp.day.toString().padLeft(2, '0')}.json';
+      final name = backupFileName();
 
       if (kIsWeb) {
         // على الويب: نعرض الملف للنسخ
@@ -194,8 +275,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -219,24 +299,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SectionHeader(
-                      title: 'بيانات الفاتورة',
-                      emoji: '🧾',
-                    ),
-                    LabeledField(
-                      label: 'اسم الشركة',
-                      controller: _company,
-                    ),
+                    const SectionHeader(title: 'بيانات الفاتورة', emoji: '🧾'),
+                    LabeledField(label: 'اسم الشركة', controller: _company),
                     const SizedBox(height: 12),
-                    LabeledField(
-                      label: 'وصف الشركة',
-                      controller: _subtitle,
-                    ),
+                    LabeledField(label: 'وصف الشركة', controller: _subtitle),
                     const SizedBox(height: 12),
-                    LabeledField(
-                      label: 'عنوان الفاتورة',
-                      controller: _title,
-                    ),
+                    LabeledField(label: 'عنوان الفاتورة', controller: _title),
                     const SizedBox(height: 12),
                     LabeledField(
                       label: 'ملاحظة أسفل الفاتورة',
@@ -279,10 +347,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SectionHeader(
-                      title: 'النسخ الاحتياطي',
-                      emoji: '💾',
-                    ),
+                    const SectionHeader(title: 'النسخ الاحتياطي', emoji: '💾'),
                     const Text(
                       'كل البيانات محفوظة داخل جهازك فقط. صدّر نسخة احتياطية بشكل دوري لحفظها في مكان آمن.',
                       style: TextStyle(
@@ -291,14 +356,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         height: 1.7,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    const FolderHint(subDir: AppInfo.backupsSubDir),
                     const SizedBox(height: 14),
+                    if (PublicStorage.isSupported) ...[
+                      LuxeButton(
+                        label: 'حفظ نسخة في مجلد التطبيق',
+                        icon: Icons.folder_special_rounded,
+                        variant: LuxeVariant.success,
+                        expanded: true,
+                        loading: _busy == 'folder',
+                        onPressed: _busy.isEmpty ? _exportToFolder : null,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                     Row(
                       children: [
                         Expanded(
                           child: LuxeButton(
-                            label: 'تصدير نسخة',
+                            label: 'مشاركة نسخة',
                             icon: Icons.upload_file_rounded,
-                            variant: LuxeVariant.success,
+                            variant: LuxeVariant.blue,
                             expanded: true,
                             loading: _busy == 'export',
                             onPressed: _busy.isEmpty ? _export : null,
@@ -336,6 +414,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 14),
+              LuxeCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader(title: 'عن التطبيق', emoji: 'ℹ️'),
+                    LuxeButton(
+                      label: 'المطوّر والتواصل',
+                      icon: Icons.support_agent_rounded,
+                      variant: LuxeVariant.ghost,
+                      expanded: true,
+                      onPressed: () => context.go(AppInfo.aboutRoute),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
               Column(
                 children: [
@@ -347,7 +441,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'تطوير العباسي سوفت',
+                    AppInfo.developer,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textMuted,
@@ -356,17 +450,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 3),
                   const Text(
-                    'الإصدار 1.0.0',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textMuted,
-                    ),
+                    AppInfo.versionLabel,
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
                 ],
               ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// شريحة تُبيّن للمستخدم **أين** ستُحفظ ملفاته بالضبط.
+///
+/// جُعلت عامة (لا تبدأ بشرطة سفلية) لأن شاشة معاينة الفاتورة تستخدمها
+/// أيضاً، فلا يتكرّر النص ولا يتناقض بين الشاشتين.
+class FolderHint extends StatelessWidget {
+  const FolderHint({super.key, required this.subDir});
+
+  final String subDir;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!PublicStorage.isSupported) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.gold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.folder_rounded, size: 18, color: AppColors.goldDark),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'مكان الحفظ على جهازك',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${AppInfo.publicFolderLabel}/$subDir',
+                  textDirection: TextDirection.ltr,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

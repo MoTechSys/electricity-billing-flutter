@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/app_info.dart';
+
 /// شاشة البداية — نفس ألوان وتوقيتات النسخة الأصلية (1700ms ثم تلاشٍ).
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.licensed});
@@ -43,10 +45,7 @@ class _SplashScreenState extends State<SplashScreen>
     final w = MediaQuery.sizeOf(context).width;
     final logoSize = (w * 0.56).clamp(120.0, 230.0);
 
-    final pop = CurvedAnimation(
-      parent: _ctrl,
-      curve: Curves.easeOutBack,
-    );
+    final pop = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack);
 
     return AnimatedOpacity(
       opacity: _opacity,
@@ -57,11 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
             gradient: RadialGradient(
               center: Alignment(0, -0.3),
               radius: 0.95,
-              colors: [
-                Color(0xFF16225C),
-                Color(0xFF0D1639),
-                Color(0xFF0A1130),
-              ],
+              colors: [Color(0xFF16225C), Color(0xFF0D1639), Color(0xFF0A1130)],
               stops: [0.0, 0.6, 1.0],
             ),
           ),
@@ -140,7 +135,7 @@ class _SplashScreenState extends State<SplashScreen>
                     controller: _ctrl,
                     delay: 0.45,
                     child: const Text(
-                      'تطوير العباسي سوفت',
+                      AppInfo.developer,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Color(0xFF6B7AA8), fontSize: 12),
                     ),

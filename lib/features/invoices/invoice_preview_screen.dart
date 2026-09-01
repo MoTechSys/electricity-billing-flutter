@@ -11,8 +11,12 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/theme.dart';
+import '../../core/app_info.dart';
 import '../../core/providers.dart';
+import '../../core/services/public_storage.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/widgets/luxe_button.dart';
+import '../settings/settings_screen.dart' show FolderHint;
 import 'invoice_pdf.dart';
 
 /// معاينة الفاتورة — نفس تصميم الويب حرفيًا (A4 أفقي 297×210mm)
@@ -27,15 +31,15 @@ class InvoicePreviewScreen extends ConsumerStatefulWidget {
       _InvoicePreviewScreenState();
 }
 
-class _InvoicePreviewScreenState
-    extends ConsumerState<InvoicePreviewScreen> {
+class _InvoicePreviewScreenState extends ConsumerState<InvoicePreviewScreen> {
   String _busy = '';
   Uint8List? _cached;
 
   Future<Uint8List> _generate() async {
     if (_cached != null) return _cached!;
-    final detail =
-        await ref.read(invoiceDetailProvider(widget.invoiceId).future);
+    final detail = await ref.read(
+      invoiceDetailProvider(widget.invoiceId).future,
+    );
     if (detail == null || detail.subscriber == null) {
       throw Exception('الفاتورة غير موجودة');
     }
@@ -72,23 +76,97 @@ class _InvoicePreviewScreenState
     }
   }
 
+  /// حفط الفاتورة في **مجلد عام باسم التطبيق** — أسلوب واتساب:
+  /// `Documents/فواتير الكهرباء/الفواتير/<اسم المشترك> - <التاريخ>.pdf`
+  ///
+  /// الملف يبقى في الجهاز حتى لو أُزيل التطبيق، ويراه مدير الملفات
+  /// والتطبيقات الأخرى، بخلاف السلوك السابق الذي كان يكتب في مجلد
+  /// خاص لا يراه المستخدم أبداً.
   Future<void> _save(String fileName) async {
     setState(() => _busy = 'pdf');
     try {
       final bytes = await _generate();
+
       if (kIsWeb) {
         await Printing.sharePdf(bytes: bytes, filename: fileName);
+        return;
+      }
+
+      final outcome = await PublicStorage.save(
+        fileName: fileName,
+        bytes: bytes,
+        mimeType: 'application/pdf',
+        subDir: AppInfo.invoicesSubDir,
+      );
+
+      if (!mounted) return;
+      if (outcome.ok) {
+        _showSaved(outcome.path);
+      } else if (outcome.denied) {
+        await _showPermissionSheet();
       } else {
+        // بديل أخير كي لا يفقد المستخدم الفاتورة: مجلد التطبيق الخاص.
         final dir = await getApplicationDocumentsDirectory();
         final file = File('${dir.path}/$fileName');
         await file.writeAsBytes(bytes, flush: true);
-        _snack('تم الحفظ: ${file.path}');
+        if (mounted) _snack('تم الحفط داخل التطبيق: ${file.path}');
       }
     } catch (e) {
       _snack('تعذّر إنشاء الـ PDF.');
     } finally {
       if (mounted) setState(() => _busy = '');
     }
+  }
+
+  void _showSaved(String path) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'تم حفط الفاتورة في المجلد',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 3),
+            Text(path, style: const TextStyle(fontSize: 11.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPermissionSheet() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('صلاحية الوصول إلى الملفات'),
+        content: const Text(
+          'لحفط الفاتورة في مجلد يمكنك الوصول إليه من مدير الملفات، '
+          'يحتاج التطبيق صلاحية الوصول إلى الملفات. لن تُقرأ أي ملفات أخرى.',
+          style: TextStyle(height: 1.8),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('لاحقًا'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              PublicStorage.openSettings();
+            },
+            child: const Text(
+              'فتح الإعدادات',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _print(String fileName) async {
@@ -109,8 +187,7 @@ class _InvoicePreviewScreenState
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -149,7 +226,17 @@ class _InvoicePreviewScreenState
             );
           }
           final display = invoiceDisplayNumber(d.invoice.invoiceNumber);
-          final fileName = 'فاتورة-$display.pdf';
+
+          // ── اسم الملف = **اسم المشترك + التاريخ** ────────────────────
+          // كما طلب المستخدم صراحةً. أُضيف رقم الفاتورة في النهاية كي
+          // لا تتزاحم فاتورتان لنفس المشترك في اليوم نفسه.
+          // التاريخ المستخدم هو تاريخ **إصدار الفاتورة** لا تاريخ اليوم،
+          // فيبقى الاسم ثابتاً لو أُعيد الحفظ لاحقاً.
+          final fileName = invoiceFileName(
+            subscriberName: d.subscriber!.subscriberName,
+            date: d.invoice.issuedAt ?? d.invoice.createdAt,
+            invoiceNumber: display,
+          );
 
           return Column(
             children: [
@@ -178,14 +265,15 @@ class _InvoicePreviewScreenState
                         const SizedBox(width: 8),
                         Expanded(
                           child: LuxeButton(
-                            label: 'حفظ PDF',
-                            icon: Icons.download_rounded,
+                            label: 'حفظ في المجلد',
+                            icon: Icons.folder_special_rounded,
                             variant: LuxeVariant.blue,
                             expanded: true,
                             compact: true,
                             loading: _busy == 'pdf',
-                            onPressed:
-                                _busy.isEmpty ? () => _save(fileName) : null,
+                            onPressed: _busy.isEmpty
+                                ? () => _save(fileName)
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -197,11 +285,25 @@ class _InvoicePreviewScreenState
                             expanded: true,
                             compact: true,
                             loading: _busy == 'print',
-                            onPressed:
-                                _busy.isEmpty ? () => _print(fileName) : null,
+                            onPressed: _busy.isEmpty
+                                ? () => _print(fileName)
+                                : null,
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    // يرى المستخدم **أين** سيُحفظ الملف وبأي اسم، قبل الضغط.
+                    const FolderHint(subDir: AppInfo.invoicesSubDir),
+                    const SizedBox(height: 6),
+                    Text(
+                      'اسم الملف: $fileName',
+                      maxLines: 2,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),

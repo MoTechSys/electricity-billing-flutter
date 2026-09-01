@@ -25,7 +25,10 @@ class DashboardScreen extends ConsumerWidget {
       onNavigate: (r) => context.go(r),
       child: stats.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorBox(message: '$e', onRetry: () => ref.invalidate(statsProvider)),
+        error: (e, _) => _ErrorBox(
+          message: '$e',
+          onRetry: () => ref.invalidate(statsProvider),
+        ),
         data: (s) => ListView(
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 0) + kBottomNavPadding,
           children: [
@@ -255,10 +258,8 @@ class _RevenueChart extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: safeMax / 4,
-                  getDrawingHorizontalLine: (_) => const FlLine(
-                    color: Color(0xFFE6EAF2),
-                    strokeWidth: 1,
-                  ),
+                  getDrawingHorizontalLine: (_) =>
+                      const FlLine(color: Color(0xFFE6EAF2), strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -332,8 +333,11 @@ class _ErrorBox extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 46, color: AppColors.btnRed2),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 46,
+              color: AppColors.btnRed2,
+            ),
             const SizedBox(height: 14),
             Text(
               message,

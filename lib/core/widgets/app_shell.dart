@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../app_info.dart';
 
 /// عنصر في الشريط السفلي
 class NavSpec {
@@ -12,12 +13,51 @@ class NavSpec {
 
 const kNavItems = <NavSpec>[
   NavSpec(label: 'الرئيسية', icon: Icons.home_rounded, route: '/dashboard'),
-  NavSpec(label: 'المشتركون', icon: Icons.people_alt_rounded, route: '/subscribers'),
-  NavSpec(label: 'الأرشيف', icon: Icons.inventory_2_rounded, route: '/invoices/archive'),
+  NavSpec(
+    label: 'المشتركون',
+    icon: Icons.people_alt_rounded,
+    route: '/subscribers',
+  ),
+  NavSpec(
+    label: 'الأرشيف',
+    icon: Icons.inventory_2_rounded,
+    route: '/invoices/archive',
+  ),
   NavSpec(label: 'الإعدادات', icon: Icons.settings_rounded, route: '/settings'),
 ];
 
-/// الهيكل العام للتطبيق: شريط علوي كحلي بالشعار + محتوى + شريط سفلي عائم.
+/// عناصر الدرج الجانبي — الإعدادات ومعلومات التطبيق كما طُلب.
+const kDrawerItems = <NavSpec>[
+  NavSpec(label: 'الرئيسية', icon: Icons.home_rounded, route: '/dashboard'),
+  NavSpec(
+    label: 'المشتركون',
+    icon: Icons.people_alt_rounded,
+    route: '/subscribers',
+  ),
+  NavSpec(
+    label: 'فاتورة جديدة',
+    icon: Icons.receipt_long_rounded,
+    route: '/invoices/new',
+  ),
+  NavSpec(
+    label: 'أرشيف الفواتير',
+    icon: Icons.inventory_2_rounded,
+    route: '/invoices/archive',
+  ),
+  NavSpec(
+    label: 'الإعدادات والنسخ الاحتياطي',
+    icon: Icons.settings_rounded,
+    route: '/settings',
+  ),
+  NavSpec(
+    label: 'المطوّر والتواصل',
+    icon: Icons.support_agent_rounded,
+    route: AppInfo.aboutRoute,
+  ),
+];
+
+/// الهيكل العام للتطبيق: شريط علوي كحلي بالشعار + محتوى + شريط سفلي عائم
+/// + درج جانبي يُفتح من اليمين (لأن اتجاه التطبيق RTL).
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
@@ -40,6 +80,9 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
+      // في اتجاه RTL يعتبر Flutter الـ `drawer` هو درج «البداية» أي
+      // اليمين تلقائياً، فلا حاجة لـ `endDrawer`.
+      drawer: AppDrawer(currentRoute: currentRoute, onNavigate: onNavigate),
       body: Column(
         children: [
           _TopBar(title: title, actions: actions),
@@ -101,6 +144,37 @@ class _TopBar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
           child: Row(
             children: [
+              // ── زر الدرج الجانبي ─────────────────────────────────
+              // نبنيه يدوياً (لا `AppBar`) لأن الشريط العلوي مخصّص.
+              // `Builder` ضروري ليحصل `Scaffold.of` على السياق الذي
+              // يقع **تحت** الـ Scaffold وليس فوقه.
+              Builder(
+                builder: (ctx) => Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Scaffold.of(ctx).openDrawer(),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.gold.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.menu_rounded,
+                        size: 22,
+                        color: AppColors.goldLight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               // الشعار — كما هو تمامًا، لا يتغير
               Container(
                 width: 42,
@@ -113,7 +187,10 @@ class _TopBar extends StatelessWidget {
                   ),
                 ),
                 padding: const EdgeInsets.all(3),
-                child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
               const SizedBox(width: 11),
               Expanded(
@@ -207,12 +284,7 @@ class _BottomNav extends StatelessWidget {
                 size: 21,
                 color: active ? AppColors.goldLight : AppColors.navText,
                 shadows: active
-                    ? [
-                        const Shadow(
-                          color: Color(0x99E7C65A),
-                          blurRadius: 10,
-                        ),
-                      ]
+                    ? [const Shadow(color: Color(0x99E7C65A), blurRadius: 10)]
                     : null,
               ),
               const SizedBox(height: 3),
@@ -271,6 +343,245 @@ class _BottomNav extends StatelessWidget {
                 size: 30,
                 color: Color(0xFF2A2102),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ═══ الدرج الجانبي ══════════════════════════════════════════════════
+///
+/// يُفتح من اليمين (اتجاه التطبيق RTL)، ويضمّ: ترويسة بالشعار واسم
+/// التطبيق، ثم روابط التنقّل كاملةً بما فيها الإعدادات، ثم صفحة المطوّر
+/// والتواصل، ويُذيَّل باسم المطوّر ورقم الإصدار.
+class AppDrawer extends StatelessWidget {
+  const AppDrawer({
+    super.key,
+    required this.currentRoute,
+    required this.onNavigate,
+  });
+
+  final String currentRoute;
+  final ValueChanged<String> onNavigate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: AppColors.navy,
+      width: 292,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(left: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // ── الترويسة ─────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [AppColors.navy2, AppColors.navy],
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.gold.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          // الشعار كما هو تمامًا
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                AppInfo.appName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.25,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'نظام الفواتير',
+                                style: TextStyle(
+                                  color: AppColors.goldLight,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      height: 1,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppColors.gold, Color(0x00C9A227)],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── الروابط ──────────────────────────────────────────────
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              children: [
+                for (final item in kDrawerItems)
+                  _DrawerTile(
+                    spec: item,
+                    active: currentRoute == item.route,
+                    onTap: () {
+                      // نُغلق الدرج أولاً ثم ننقل، وإلا بقي الدرج مفتوحاً
+                      // فوق الصفحة الجديدة على بعض الأجهزة.
+                      Navigator.of(context).pop();
+                      if (currentRoute != item.route) onNavigate(item.route);
+                    },
+                  ),
+              ],
+            ),
+          ),
+
+          // ── التذييل ──────────────────────────────────────────────
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    AppInfo.developer,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.goldLight.withValues(alpha: 0.95),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    AppInfo.versionLabel,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.navText.withValues(alpha: 0.75),
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DrawerTile extends StatelessWidget {
+  const _DrawerTile({
+    required this.spec,
+    required this.active,
+    required this.onTap,
+  });
+
+  final NavSpec spec;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            decoration: BoxDecoration(
+              color: active
+                  ? AppColors.gold.withValues(alpha: 0.16)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: active
+                    ? AppColors.gold.withValues(alpha: 0.45)
+                    : Colors.transparent,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  spec.icon,
+                  size: 21,
+                  color: active ? AppColors.goldLight : AppColors.navText,
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Text(
+                    spec.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      color: active ? Colors.white : AppColors.navText,
+                    ),
+                  ),
+                ),
+                if (active)
+                  Container(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: AppColors.gold,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

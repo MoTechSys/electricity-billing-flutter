@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/app_info.dart';
+import '../features/about/about_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/invoices/invoice_archive_screen.dart';
 import '../features/invoices/invoice_form_screen.dart';
@@ -45,9 +47,9 @@ GoRouter buildRouter({required bool licensed}) {
             InvoicePreviewScreen(invoiceId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: AppInfo.aboutRoute, builder: (_, _) => const AboutScreen()),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('صفحة غير موجودة: ${state.uri}')),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('صفحة غير موجودة: ${state.uri}'))),
   );
 }

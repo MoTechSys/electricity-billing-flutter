@@ -47,8 +47,7 @@ const double _kBottomPadRefPx = 14;
 /// وإن نقصت انضغطت المسافة السفلية فلا يبقى فراغ ميت.
 /// العرض ‎297mm‎ والمسافات الجانبية لم تُمسّ (طلب المستخدم السابق:
 /// «فقط المسافة السفلية، مش المسافة الجانبية»).
-final double _kPageHmm =
-    _kPageWmm * (_Y.bottomBar + _kBottomPadRefPx) / 1024;
+final double _kPageHmm = _kPageWmm * (_Y.bottomBar + _kBottomPadRefPx) / 1024;
 
 /// بكسل مرجعي (من الأصل، 1024px عرضاً) ← نقطة (pt)
 const double _kRefPxToPt = 297 / 1024 * 72 / 25.4; // ≈ 0.822205
@@ -296,21 +295,10 @@ String invoiceDisplayNumber(String invoiceNumber) {
   return stripped.isEmpty ? invoiceNumber : stripped;
 }
 
-/// اسم ملف الفاتورة: «اسم العميل + التاريخ» — كما طلب المستخدم.
-String invoiceFileName({
-  required String subscriberName,
-  required DateTime date,
-}) {
-  final safe = subscriberName
-      .replaceAll(RegExp(r'[\\/:*?"<>|\n\r\t]'), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-  final base = safe.isEmpty ? 'فاتورة' : safe;
-  return '$base - $y-$m-$d.pdf';
-}
+// ملاحظة: كان هنا `invoiceFileName` مكرّراً. نُقل إلى
+// `lib/core/utils/formatters.dart` بنسخة أقوى (تنقية أوسع للمحارف، حدّ
+// لطول الاسم، ورقم فاتورة اختياري) لأن **النسخ الاحتياطي** يحتاج نفس
+// منطق تنقية أسماء الملفات، فلا يصحّ أن يسكن داخل ملف بناء الـ PDF.
 
 /// بناء مستند الفاتورة كاملاً (A4 أفقي 297×210mm، صفحة واحدة).
 Future<Uint8List> buildInvoicePdf({
@@ -529,10 +517,7 @@ pw.Widget _infoBlock(
   final right = <List<String>>[
     ['رقم الفاتورة', invDisplay],
     ['اسم المشترك', sub.subscriberName],
-    [
-      'الفترة',
-      'من ${_pdfDate(inv.periodFrom)} حتى ${_pdfDate(inv.periodTo)}',
-    ],
+    ['الفترة', 'من ${_pdfDate(inv.periodFrom)} حتى ${_pdfDate(inv.periodTo)}'],
   ];
   final left = <List<String>>[
     [

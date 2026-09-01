@@ -96,9 +96,9 @@ class _SubscriberFormScreenState extends ConsumerState<SubscriberFormScreen> {
 
     if (!mounted) return;
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم حفظ المشترك بنجاح')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم حفظ المشترك بنجاح')));
   }
 
   @override
@@ -135,18 +135,11 @@ class _SubscriberFormScreenState extends ConsumerState<SubscriberFormScreen> {
                 const SizedBox(height: 12),
                 LabeledField(label: 'الكبينة', controller: _cabin),
                 const SizedBox(height: 12),
-                LabeledField(
-                  label: 'الموقع / العنوان',
-                  controller: _location,
-                ),
+                LabeledField(label: 'الموقع / العنوان', controller: _location),
                 const SizedBox(height: 12),
                 LabeledField(label: 'الهاتف', controller: _phone),
                 const SizedBox(height: 12),
-                LabeledField(
-                  label: 'ملاحظات',
-                  controller: _notes,
-                  maxLines: 3,
-                ),
+                LabeledField(label: 'ملاحظات', controller: _notes, maxLines: 3),
               ],
             ),
           ),
@@ -163,8 +156,11 @@ class _SubscriberFormScreenState extends ConsumerState<SubscriberFormScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded,
-                      size: 18, color: AppColors.btnRed2),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 18,
+                    color: AppColors.btnRed2,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

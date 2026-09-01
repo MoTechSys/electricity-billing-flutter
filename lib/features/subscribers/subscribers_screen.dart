@@ -31,9 +31,8 @@ class SubscribersScreen extends ConsumerWidget {
                 Expanded(
                   child: SearchBarField(
                     hint: 'ابحث بالاسم أو رقم المشترك أو العداد',
-                    onChanged: (v) => ref
-                        .read(subscriberQueryProvider.notifier)
-                        .state = v,
+                    onChanged: (v) =>
+                        ref.read(subscriberQueryProvider.notifier).state = v,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -67,7 +66,8 @@ class SubscribersScreen extends ConsumerWidget {
                 }
                 return ListView.separated(
                   padding:
-                      const EdgeInsets.fromLTRB(14, 4, 14, 0) + kBottomNavPadding,
+                      const EdgeInsets.fromLTRB(14, 4, 14, 0) +
+                      kBottomNavPadding,
                   itemCount: rows.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (_, i) => _SubscriberTile(row: rows[i]),
@@ -171,8 +171,11 @@ class _SubscriberTile extends ConsumerWidget {
                 value: 'invoice',
                 child: Row(
                   children: [
-                    Icon(Icons.receipt_long_rounded,
-                        size: 18, color: AppColors.btnBlue1),
+                    Icon(
+                      Icons.receipt_long_rounded,
+                      size: 18,
+                      color: AppColors.btnBlue1,
+                    ),
                     SizedBox(width: 8),
                     Text('إصدار فاتورة'),
                   ],
@@ -185,7 +188,9 @@ class _SubscriberTile extends ConsumerWidget {
                     Icon(
                       active ? Icons.block_rounded : Icons.check_circle_rounded,
                       size: 18,
-                      color: active ? AppColors.statOrange : AppColors.statGreen,
+                      color: active
+                          ? AppColors.statOrange
+                          : AppColors.statGreen,
                     ),
                     const SizedBox(width: 8),
                     Text(active ? 'تعطيل' : 'تنشيط'),
@@ -196,8 +201,11 @@ class _SubscriberTile extends ConsumerWidget {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded,
-                        size: 18, color: AppColors.btnRed2),
+                    Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: AppColors.btnRed2,
+                    ),
                     SizedBox(width: 8),
                     Text('حذف'),
                   ],

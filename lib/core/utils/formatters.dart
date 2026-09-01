@@ -68,3 +68,62 @@ String _p(int v) => v.toString().padLeft(2, '0');
 
 /// توحيد صيغة التاريخ المدخل (يستبدل "-" بـ "/") كما في نسخة الويب
 String normalizeDate(String input) => input.trim().replaceAll('-', '/');
+
+/// ═══ أسماء الملفات ═══════════════════════════════════════════════════
+///
+/// يُنقّي نصاً ليصلح كاسم ملف على Android/Windows/Linux.
+///
+/// المحارف الممنوعة في أنظمة الملفات: `\ / : * ? " < > |` إضافةً إلى
+/// محارف التحكّم. كما نمنع النقطة في آخر الاسم لأن Windows يحذفها،
+/// ونضغط الفراغات المتكررة كي لا يخرج اسم مشوّه.
+String safeFileStem(String raw) {
+  const forbidden = r'\/:*?"<>|';
+  final sb = StringBuffer();
+  for (final ch in raw.trim().split('')) {
+    final code = ch.codeUnitAt(0);
+    if (code < 32 || forbidden.contains(ch)) {
+      sb.write(' ');
+    } else {
+      sb.write(ch);
+    }
+  }
+  var out = sb.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+  while (out.endsWith('.')) {
+    out = out.substring(0, out.length - 1).trim();
+  }
+  // حدّ عملي لطول الاسم: أنظمة الملفات تحدّ الاسم بـ 255 بايت، والحرف
+  // العربي بايتان في UTF-8، فنقتصر على 80 حرفاً ليتبقّى متّسع للتاريخ
+  // واللاحقة.
+  if (out.length > 80) out = out.substring(0, 80).trim();
+  return out.isEmpty ? 'ملف' : out;
+}
+
+/// اسم ملف الفاتورة = **اسم المشترك + التاريخ**، كما طلب المستخدم.
+///
+/// مثال: `عبدالله محمد الشامي - 2026-01-15.pdf`
+/// وعند إضافة رقم الفاتورة: `عبدالله محمد الشامي - 2026-01-15 - 0731.pdf`
+String invoiceFileName({
+  required String subscriberName,
+  DateTime? date,
+  String? invoiceNumber,
+  String extension = 'pdf',
+}) {
+  final d = date ?? DateTime.now();
+  final stamp = '${d.year}-${_p(d.month)}-${_p(d.day)}';
+  final name = safeFileStem(subscriberName);
+  final suffix = (invoiceNumber == null || invoiceNumber.trim().isEmpty)
+      ? ''
+      : ' - ${safeFileStem(invoiceNumber)}';
+  return '$name - $stamp$suffix.$extension';
+}
+
+/// اسم ملف النسخة الاحتياطية: `نسخة احتياطية - 2026-01-15 - 2130.json`
+///
+/// أُضيفت الساعة والدقيقة لأن المستخدم قد يُصدّر أكثر من نسخة في اليوم
+/// نفسه، فلا تتزاحم الأسماء ولا يُلحق النظام «(1)».
+String backupFileName({DateTime? date}) {
+  final d = date ?? DateTime.now();
+  final day = '${d.year}-${_p(d.month)}-${_p(d.day)}';
+  final time = '${_p(d.hour)}${_p(d.minute)}';
+  return 'نسخة احتياطية - $day - $time.json';
+}
