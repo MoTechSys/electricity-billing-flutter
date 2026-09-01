@@ -1,0 +1,62 @@
+name: motech_billing
+description: نظام فواتير الكهرباء — شركة العباسي لتوليد الطاقة الكهربائية
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Local database (SQLite)
+  drift: ^2.31.0
+  sqlite3_flutter_libs: ^0.5.42
+
+  # Navigation
+  go_router: ^17.2.3
+
+  # PDF + printing / sharing
+  pdf: ^3.12.0
+  printing: ^5.14.3
+
+  # Platform services
+  path_provider: ^2.1.5
+  share_plus: ^12.0.2
+  file_picker: ^11.0.3
+  shared_preferences: ^2.5.5
+  path: ^1.9.1
+  sqlite3: ^2.4.6
+
+  # Utilities & UI
+  intl: 0.20.2
+  fl_chart: ^1.2.0
+  crypto: ^3.0.6
+  cupertino_icons: ^1.0.9
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.15.1
+  drift_dev: ^2.31.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  fonts:
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700
