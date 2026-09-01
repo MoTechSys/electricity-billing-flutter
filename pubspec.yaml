@@ -34,6 +34,11 @@ dependencies:
   path: ^1.9.1
   sqlite3: ^2.4.6
 
+  # صلاحيات التخزين + فتح الروابط الخارجية
+  permission_handler: ^11.3.1
+  url_launcher: ^6.3.1
+  device_info_plus: ^11.2.0
+
   # Utilities & UI
   intl: 0.20.2
   fl_chart: ^1.2.0
@@ -52,11 +57,35 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/fonts/
 
   fonts:
+    # خط واجهة التطبيق
     - family: IBMPlexSansArabic
       fonts:
         - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
           weight: 400
         - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700
+
+    # خط الفاتورة — Amiri، خط نَسخي طباعي كلاسيكي مخصص للمستندات الرسمية
+    # والفواتير. يغطي العربي + Arabic Presentation Forms-B (140) + الترقيم
+    # اللاتيني «- / —» + الأرقام 10/10، فلا يحتاج خطاً احتياطياً.
+    # مُقلَّص بـ fontTools من 431 KB إلى 291 KB.
+    - family: AmiriInvoice
+      fonts:
+        - asset: assets/fonts/AmiriInvoice-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/AmiriInvoice-Bold.ttf
+          weight: 700
+
+    # خط احتياطي للمحارف اللاتينية والترقيم داخل الفاتورة.
+    # Noto Naskh Arabic لا يغطي «-» و «/» و «—» ⇒ لولا هذا لظهرت فراغات.
+    # Tinos متوافق مترياً مع Times، وأرقام الفاتورة الأصلية سيريف.
+    # مُقلَّص إلى Latin+Punctuation فقط (20 KB لكل ملف بدلاً من 550 KB).
+    - family: TinosLatin
+      fonts:
+        - asset: assets/fonts/TinosLatin-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/TinosLatin-Bold.ttf
           weight: 700
