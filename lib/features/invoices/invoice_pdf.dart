@@ -39,9 +39,16 @@ double _mm(double v) => v * 72 / 25.4;
 /// ويُضاف هامش سفلي صغير (`_kBottomPadRefPx`) أسفل الشريط السفلي
 /// لأن الأصل مقصوص عند الحبر تماماً فلا يترك متنفّساً للطابعة.
 const double _kPageWmm = 297;
-const double _kRefHpx = 522; // ارتفاع الصورة المرجعية
 const double _kBottomPadRefPx = 14;
-final double _kPageHmm = _kPageWmm * (_kRefHpx + _kBottomPadRefPx) / 1024;
+
+/// ارتفاع الصفحة **مشتقّ من التخطيط** لا رقماً ثابتاً: آخر عنصر هو
+/// الشريط السفلي `_Y.bottomBar`، ويُضاف إليه متنفّس الطابعة. فإذا زادت
+/// الفوارق الرأسية لمنع التداخل نما الارتفاع تلقائياً ولم يُقطع شيء،
+/// وإن نقصت انضغطت المسافة السفلية فلا يبقى فراغ ميت.
+/// العرض ‎297mm‎ والمسافات الجانبية لم تُمسّ (طلب المستخدم السابق:
+/// «فقط المسافة السفلية، مش المسافة الجانبية»).
+final double _kPageHmm =
+    _kPageWmm * (_Y.bottomBar + _kBottomPadRefPx) / 1024;
 
 /// بكسل مرجعي (من الأصل، 1024px عرضاً) ← نقطة (pt)
 const double _kRefPxToPt = 297 / 1024 * 72 / 25.4; // ≈ 0.822205
@@ -49,23 +56,48 @@ double _r(double refPx) => refPx * _kRefPxToPt;
 
 /// ── الإحداثيات الرأسية المطلقة (بكسل مرجعي) ─────────────────────────
 /// مقيسة من الأصل: كل قيمة هي موضع الحبر أو الخط الفعلي.
+/// ⚠️ الأرقام أدناه مقيسة من الأصل، لكن الفوارق بعدها **مشتقّة** لا ثابتة:
+///    كل موضع = الذي قبله + فارق. وبذلك إذا زيد فارقٌ لمنع التداخل انزاح
+///    ما بعده تلقائياً ولم يتراكب شيء. طلب المستخدم: «عادي ولو كبرت
+///    الفاتورة قليلاً، المهم لا أريد تداخل الخطوط مع بعض».
 class _Y {
   static const headerTop = 10.0; // إطار الترويسة، أعلى
   static const headerBottom = 91.0; // إطار الترويسة، أسفل
   static const titleInkTop = 126.0; // أعلى حبر العنوان
   static const titleInkBottom = 148.0; // أسفل حبر العنوان
-  static const infoRow1 = 160.0; // أعلى حبر صف البيانات 1
-  static const infoRow2 = 190.0; //   »        »        2
-  static const infoRow3 = 219.0; //   »        »        3
-  static const ruleAboveTable = 261.0; // الخط السميك فوق الجدول
-  static const tableTop = 270.0; // أعلى إطار الجدول
-  static const tableHeadBottom = 306.0; // فاصل الرأس/الجسم
-  static const tableBottom = 347.0; // أسفل إطار الجدول
-  static const writtenInk = 364.0; // أعلى حبر سطر «كتابةً»
-  static const footerRule = 390.0; // خط التذييل العلوي
-  static const footerInk = 408.0; // أعلى حبر نص التذييل
-  static const bottomBar = 458.0; // الشريط السفلي
+
+  /// إزاحة كتلة البيانات للأسفل: التسطير نزل بمقدار
+  /// `_kTitleUnderlineGap`، فلو بقيت الكتلة في موضعها لامست التسطير.
+  static const infoShift = 10.0;
+  static const infoRow1 = 160.0 + infoShift; // أعلى حبر صف البيانات 1
+
+  /// خطوة الأسطر: الأصل ‎29.5px‎؛ رُفعت إلى ‎33px‎ لأن المحارف المرتفعة
+  /// في سطر كانت تلامس النازلة من السطر الذي يعلوه.
+  static const infoStep = 33.0;
+  static const infoRow2 = infoRow1 + infoStep;
+  static const infoRow3 = infoRow2 + infoStep;
+
+  static const ruleAboveTable = infoRow3 + 42.0; // الخط السميك فوق الجدول
+  static const tableTop = ruleAboveTable + 9.0; // أعلى إطار الجدول
+  static const tableHeadBottom = tableTop + 38.0; // فاصل الرأس/الجسم
+  static const tableBottom = tableHeadBottom + 44.0; // أسفل إطار الجدول
+  static const writtenInk = tableBottom + 19.0; // أعلى حبر سطر «كتابةً»
+
+  /// خط التذييل — وهو **الخط الذي تحت «المبلغ المستحق كتابةً»**.
+  /// طلب المستخدم: «الخط اللي تحت المبلغ المستحق نزّله قليلاً».
+  /// الفارق في الأصل ‎26px‎ ← ‎38px‎ (نزول ‎12px‎).
+  static const footerRule = writtenInk + 38.0;
+  static const footerInk = footerRule + 18.0; // أعلى حبر نص التذييل
+  static const bottomBar = footerInk + 50.0; // الشريط السفلي
 }
+
+/// فراغ التسطير تحت أدنى حبر العنوان (بكسل مرجعي).
+/// طلب المستخدم أن يكون الخط **تحت** النص لا في وسطه.
+///
+/// القيمة مقيسة لا مقدَّرة: بفراغ ‎7px‎ وقع التسطير عند ‎y158‎ في حين أن
+/// نازلات «ء» و«ه» في «كهرباء» تمتد إلى ‎y164‎، فكان الخط يقطعها. رُفع
+/// الفراغ إلى ‎14px‎ فنزل التسطير أسفل آخر بكسل حبر بهامش واضح.
+const double _kTitleUnderlineGap = 14.0;
 
 /// ── الإحداثيات الأفقية المطلقة (بكسل مرجعي) ─────────────────────────
 class _X {
@@ -115,11 +147,16 @@ class _C {
   static const black = PdfColors.black;
   static const white = PdfColors.white;
 
-  /// كحلي العنوان + تسطيره + ملاحظة التذييل — مقيس من الأصل
-  static const titleNavy = PdfColor.fromInt(0xFF0E10B3);
+  /// أزرق العنوان + تسطيره + ملاحظة التذييل.
+  /// مستخرج من ملف Word الأصلي الذي أرسله المستخدم (`bill.docx`):
+  /// `word/document.xml` يحتوي `<w:color w:val="0000FF"/>` في **31 موضعاً**
+  /// دون أي لون آخر، أي أن كل الأزرق في الفاتورة لون واحد.
+  static const titleNavy = PdfColor.fromInt(0xFF0000FF);
 
-  /// أزرق قيمة المبلغ المستحق — مقيس من الأصل
-  static const amountBlue = PdfColor.fromInt(0xFF1F9CF0);
+  /// أزرق قيمة المبلغ المستحق — **نفس** أزرق العنوان.
+  /// طلب المستخدم: «المبلغ المستحق خلّه أزرق نفس لون فاتورة استهلاك
+  /// كهرباء»، ويؤكده الأصل: كلاهما `0000FF`.
+  static const amountBlue = titleNavy;
 
   /// خلفية رأس الجدول الخوخية — مقيس من الأصل RGB(252,213,180)
   static const headBg = PdfColor.fromInt(0xFFFCD5B4);
@@ -414,6 +451,12 @@ pw.Widget _titleBlock(InvoiceFonts f, String title) {
             ),
           ),
         ),
+        // ── التسطير: تحت النص لا في وسطه ──
+        // طلب المستخدم: «لا أريده يستبعد، نزّله تحت وليس وسط النص».
+        // كان الصندوق أعلاه بارتفاع `inkH + 6` فقط، وهو لا يستوعب
+        // نازلات المحارف (ء / ه / ـل)، فيلامس الخط أسفل الحبر ويبدو
+        // شاطباً للنص. الحل: فراغ صريح يفصل الخط عن أدنى نقطة حبر.
+        pw.SizedBox(height: _r(_kTitleUnderlineGap)),
         // التسطير بعرض الحبر تماماً (200px) لا بعرض الصفحة
         pw.Container(
           width: _r(200),
