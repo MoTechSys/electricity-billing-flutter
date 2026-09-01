@@ -174,7 +174,7 @@ class _FadeUp extends StatelessWidget {
     );
     return AnimatedBuilder(
       animation: anim,
-      builder: (_, __) => Opacity(
+      builder: (_, _) => Opacity(
         opacity: anim.value,
         child: Transform.translate(
           offset: Offset(0, 10 * (1 - anim.value)),

@@ -354,7 +354,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: _options.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, i) {
                         final s = _options[i];
                         return ListTile(

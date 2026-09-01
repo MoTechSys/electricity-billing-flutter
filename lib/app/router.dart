@@ -17,17 +17,17 @@ GoRouter buildRouter({required bool licensed}) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => SplashScreen(licensed: licensed),
+        builder: (_, _) => SplashScreen(licensed: licensed),
       ),
-      GoRoute(path: '/license', builder: (_, __) => const LicenseScreen()),
-      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+      GoRoute(path: '/license', builder: (_, _) => const LicenseScreen()),
+      GoRoute(path: '/dashboard', builder: (_, _) => const DashboardScreen()),
       GoRoute(
         path: '/subscribers',
-        builder: (_, __) => const SubscribersScreen(),
+        builder: (_, _) => const SubscribersScreen(),
       ),
       GoRoute(
         path: '/subscribers/new',
-        builder: (_, __) => const SubscriberFormScreen(),
+        builder: (_, _) => const SubscriberFormScreen(),
       ),
       GoRoute(
         path: '/invoices/new',
@@ -37,14 +37,14 @@ GoRouter buildRouter({required bool licensed}) {
       ),
       GoRoute(
         path: '/invoices/archive',
-        builder: (_, __) => const InvoiceArchiveScreen(),
+        builder: (_, _) => const InvoiceArchiveScreen(),
       ),
       GoRoute(
         path: '/invoices/:id/print',
         builder: (context, state) =>
             InvoicePreviewScreen(invoiceId: state.pathParameters['id']!),
       ),
-      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(child: Text('صفحة غير موجودة: ${state.uri}')),

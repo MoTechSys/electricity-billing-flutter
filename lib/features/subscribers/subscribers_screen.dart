@@ -69,7 +69,7 @@ class SubscribersScreen extends ConsumerWidget {
                   padding:
                       const EdgeInsets.fromLTRB(14, 4, 14, 0) + kBottomNavPadding,
                   itemCount: rows.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (_, i) => _SubscriberTile(row: rows[i]),
                 );
               },
