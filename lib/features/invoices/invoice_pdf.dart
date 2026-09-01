@@ -71,13 +71,20 @@ class _Y {
   static const infoShift = 10.0;
   static const infoRow1 = 160.0 + infoShift; // أعلى حبر صف البيانات 1
 
-  /// خطوة الأسطر: الأصل ‎29.5px‎؛ رُفعت إلى ‎33px‎ لأن المحارف المرتفعة
-  /// في سطر كانت تلامس النازلة من السطر الذي يعلوه.
-  static const infoStep = 33.0;
+  /// خطوة الأسطر: الأصل ‎29.5px‎. ارتفاع سطر Amiri عند `_F.info` مقيس
+  /// بـ ‎40.7px‎، فأي خطوة أقل منه تجعل الأسطر تتراكب فعلياً. لذا الخطوة
+  /// = ارتفاع السطر + متنفّس ‎3.3px‎ يمنع تلامس النازلات بالمرتفعات.
+  /// طلب المستخدم: «لا أريد تداخل الخطوط مع بعض».
+  static const infoStep = _X.infoLineH + 3.3;
   static const infoRow2 = infoRow1 + infoStep;
   static const infoRow3 = infoRow2 + infoStep;
 
-  static const ruleAboveTable = infoRow3 + 42.0; // الخط السميك فوق الجدول
+  /// الخط السميك فوق الجدول — **مشتقّ من أسفل كتلة البيانات فعلياً**.
+  /// `infoRow3` هو أعلى حبر الصف الثالث، فلا بد من إضافة ارتفاع سطره
+  /// كاملاً (`_X.infoLineH`) قبل حساب الفراغ، وإلا وقع الخط داخل النص.
+  /// وهذا ما كان يحدث: أدنى حبر البيانات y296 والخط عند y268.
+  /// الفراغ ‎12px‎ متنفّس بصري بين آخر سطر بيانات وبداية الجدول.
+  static const ruleAboveTable = infoRow3 + _X.infoLineH + 12.0;
   static const tableTop = ruleAboveTable + 9.0; // أعلى إطار الجدول
   static const tableHeadBottom = tableTop + 38.0; // فاصل الرأس/الجسم
   static const tableBottom = tableHeadBottom + 44.0; // أسفل إطار الجدول
@@ -114,28 +121,57 @@ class _X {
   static const tableLeft = 45.0; // إطار الجدول
   static const tableRight = 982.0;
 
-  // ── كتلة البيانات — مقيسة حرفياً من الأصل ─────────────────
-  // الترتيب من اليمين: [الملصق] ثم [:] ثم [القيمة]
+  // ── كتلة البيانات — عمودان، كلٌّ منهما **يقيس نفسه** ──────────────
+  //
+  // لماذا تغيّرت البنية؟  البنية القديمة كانت ثلاثة صناديق ثابتة العرض
+  // ([الملصق] ‎104px‎ / [:] / [القيمة]) موضوعة داخل `pw.Stack`، ولا يرى
+  // أيٌّ منها الآخر. وبقياس النصوص بخط Amiri عند مقاس `_F.info`:
+  //     «اسم المشترك» = 96.9px  في صندوق 104px  → متنفّس 7px
+  //     «رقم الدورة»  = 80.1px  في صندوق  80px  → متنفّس **سالب**
+  //     «رقم العداد»  = 77.0px  في صندوق  80px  → متنفّس 3px
+  // فتجاوز الملصق صندوقه ومرّ **فوق** موضع النقطتين الثابت (x216..230)
+  // فغطّاها ⇒ «اختفاء النقطتين»، ولامَس القيمة ⇒ «مسح الأرقام».
+  // والدليل من داخل ملف PDF: خرجت «0731رقم» ككلمة واحدة ملتصقة.
+  //
+  // الحل: `pw.Table` بأعمدة `IntrinsicColumnWidth` للملصق والنقطتين،
+  // فيأخذ عمود الملصق عرض **أطول** ملصق تلقائياً وتنتظم النقطتان في
+  // عمود واحد، وعمود `FlexColumnWidth` للقيمة يأخذ ما تبقّى. لا رقم
+  // ثابت واحد ⇒ أي تغيير في الخط أو المقاس أو طول النص يُستوعب ذاتياً.
 
-  // العمود الأيمن: الملصق ينتهي x=974، النقطتان x=850..860،
-  //              القيمة تنتهي يميناً عند x=843 وتتمدد يساراً
-  static const infoRLabelRight = 976.0;
-  static const infoRColonRight = 861.0;
-  static const infoRValueRight = 843.0;
-  static const infoRValueLeft = 470.0; // حد التمدد (منتصف الصفحة)
+  /// الحافة اليمنى لكتلة العمود الأيمن — مقيسة من الأصل (حبر الملصق
+  /// ينتهي عند x=974) وهي الشيء الوحيد الذي يبقى مطلقاً لأنه محاذاة.
+  static const infoRight = 977.0;
 
-  /// أقصى عرض لملصق العمود الأيمن — أوسع حبر مقيس 88px + هامش
-  static const infoRLabelW = 104.0;
+  /// الحافة اليمنى لكتلة العمود الأيسر — مقيسة: الملصق ينتهي x=297.
+  static const infoLeftColRight = 300.0;
 
-  // العمود الأيسر: الملصق ينتهي x=297، النقطتان x=221..229،
-  //               القيمة تنتهي يميناً عند x=196 وتتمدد يساراً
-  static const infoLLabelRight = 299.0;
-  static const infoLColonRight = 230.0;
-  static const infoLValueRight = 196.0;
-  static const infoLValueLeft = 44.0; // حد التمدد (هامش الجدول)
+  /// عرض كتلة العمود الأيمن: من حافته اليمنى حتى نهاية العمود الأيسر،
+  /// مع فجوة فصل. مشتقّ لا ثابت، فلا يتداخل العمودان أبداً.
+  static const infoColGap = 24.0;
+  static const infoRWidth = infoRight - infoLeftColRight - infoColGap;
 
-  /// أقصى عرض لملصق العمود الأيسر — أوسع حبر مقيس 66px + هامش
-  static const infoLLabelW = 80.0;
+  /// عرض كتلة العمود الأيسر: من حافته اليمنى حتى هامش الجدول الأيسر.
+  static const infoLWidth = infoLeftColRight - tableLeft;
+
+  /// فراغ حول النقطتين — يفصلها عن الملصق يميناً وعن القيمة يساراً.
+  /// وجودُه هو ما يمنع الالتصاق الذي رآه المستخدم.
+  static const infoColonPadRight = 10.0;
+  static const infoColonPadLeft = 8.0;
+
+  /// متنفّس رأسي لكل خلية بيانات (أعلى/أسفل).
+  ///
+  /// لا يُثبَّت ارتفاع الخلية أبداً — بل يقيس الصف ارتفاعه من سطر الخط
+  /// ويُضاف إليه هذا المتنفّس، فلا يُصغّر `FittedBox` النص بسبب قيد رأسي
+  /// أضيق من سطر الخط (وهو ما حدث فعلاً عند تثبيت الارتفاع بـ 33px:
+  /// سطر Amiri الطبيعي 40.7px فصُغّرت كل القيم من 23.14px إلى 18.77px).
+  ///
+  /// القيمة مقيسة: ارتفاع سطر الخط ‎40.7px‎، والخطوة المطلوبة بين
+  /// الصفوف هي `_Y.infoStep` (‎44px‎ لمنع تلامس النازلات بالمرتفعات)،
+  /// فالمتنفّس = (44 − 40.7) / 2 ≈ 1.65px لكل جهة. وهو **مشتقّ** أدناه
+  /// لا مكتوب، فلو تغيّر الخط أو المقاس أُعيد حسابه تلقائياً.
+  static const infoLineH = 40.7; // ارتفاع سطر Amiri عند _F.info — مقيس
+  static double get infoRowPad =>
+      ((_Y.infoStep - infoLineH) / 2).clamp(0.0, 100.0);
 
   static const writtenRight = 972.0; // سطر «كتابةً» محاذى لليمين
 
@@ -469,9 +505,20 @@ pw.Widget _titleBlock(InvoiceFonts f, String title) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// كتلة البيانات — عمودان، 3 صفوف عند y 160 / 190 / 219 (الخطوة ≈ 29.5)
-// العمود الأيمن: الملصق ينتهي x=974، النقطتان x=860، القيمة تبدأ x=826
-// العمود الأيسر: الملصق ينتهي x=297، النقطتان x=226، القيمة تبدأ x=195
+// كتلة البيانات — عمودان، ثلاثة صفوف، **بتخطيط يقيس نفسه**.
+//
+// المشكلة التي عالجها هذا التخطيط (مقيسة من داخل ملف PDF نفسه):
+// كانت الأجزاء الثلاثة [الملصق] [:] [القيمة] صناديقَ ثابتة العرض داخل
+// `pw.Stack`، ولا يعلم أحدها بحدود الآخر. فلمّا كبُر الخط تجاوز الملصق
+// صندوقه ومرّ فوق النقطتين فغطّاها، ولامَس القيمة فبدا أنه «يمسحها»:
+//     x 221.0..268.0  «الدورة:»   ← النقطتان مُلتصقة بالملصق
+//     x 274.2..846.8  «0731رقم»   ← القيمة والملصق كلمة واحدة!
+//
+// الآن كل عمود `pw.Table` من ثلاثة أعمدة فرعية:
+//     [القيمة: Flex] [النقطتان: Intrinsic] [الملصق: Intrinsic]
+// فيأخذ عمود الملصق عرض أطول ملصق تلقائياً، وتنتظم النقطتان في عمود
+// واحد فتتحاذى رأسياً، وتأخذ القيمة كل ما تبقّى. لا تراكب ممكن بنيوياً
+// لأن أعمدة الجدول متجاورة لا متراكبة.
 // ───────────────────────────────────────────────────────────────────
 pw.Widget _infoBlock(
   InvoiceFonts f,
@@ -496,58 +543,44 @@ pw.Widget _infoBlock(
     ['الكبينة', sub.cabinName.isNotEmpty ? sub.cabinName : sub.locationName],
   ];
 
-  const ys = [_Y.infoRow1, _Y.infoRow2, _Y.infoRow3];
-
   return pw.Stack(
     children: [
-      for (var i = 0; i < 3; i++) ...[
-        // العمود الأيمن
-        _infoCell(
-          f,
-          label: right[i][0],
-          value: right[i][1],
-          y: ys[i],
-          labelRight: _X.infoRLabelRight,
-          labelWidth: _X.infoRLabelW,
-          colonRight: _X.infoRColonRight,
-          valueRight: _X.infoRValueRight,
-          valueLeft: _X.infoRValueLeft,
-        ),
-        // العمود الأيسر
-        _infoCell(
-          f,
-          label: left[i][0],
-          value: left[i][1],
-          y: ys[i],
-          labelRight: _X.infoLLabelRight,
-          labelWidth: _X.infoLLabelW,
-          colonRight: _X.infoLColonRight,
-          valueRight: _X.infoLValueRight,
-          valueLeft: _X.infoLValueLeft,
-        ),
-      ],
+      // العمود الأيمن — حافته اليمنى مقيسة من الأصل
+      _infoColumn(
+        f,
+        rows: right,
+        width: _X.infoRWidth,
+        rightEdge: _X.infoRight,
+      ),
+      // العمود الأيسر
+      _infoColumn(
+        f,
+        rows: left,
+        width: _X.infoLWidth,
+        rightEdge: _X.infoLeftColRight,
+      ),
     ],
   );
 }
 
-/// خلية بيانات واحدة، بإحداثيات مطلقة.
+/// متنفّس رأسي موحّد لخلايا كتلة البيانات، مع محاذاة لليمين.
+/// لا يفرض ارتفاعاً، فيبقى الصف حرّاً في قياس نفسه من سطر الخط.
+pw.Widget _infoPad(pw.Widget child) => pw.Padding(
+  padding: pw.EdgeInsets.symmetric(vertical: _r(_X.infoRowPad)),
+  child: pw.Align(alignment: pw.Alignment.centerRight, child: child),
+);
+
+/// عمود بيانات كامل (ثلاثة صفوف) بجدول يقيس أعمدته ذاتياً.
 ///
-/// البنية المقيسة من الأصل (من اليمين إلى اليسار):
-///   [الملصق  ← محاذى لليمين عند labelRight]
-///   [النقطتان ← موضع ثابت، حافتها اليمنى colonRight]
-///   [القيمة   ← محاذاة لليمين عند valueRight، تتمدد يساراً حتى valueLeft]
-///
-/// كل جزء له صندوقه المستقل، فلا يُقصّ أحدها الآخر.
-pw.Widget _infoCell(
+/// `rightEdge` هي الحافة اليمنى المقيسة من الأصل — المرجع الوحيد الثابت،
+/// وكل ما بعدها مشتقّ: عرض الملصق من نصّه، وعرض النقطتين من محرفها،
+/// والقيمة تأخذ الباقي. فلو تغيّر الخط أو المقاس أو طال النص انضبط
+/// التخطيط تلقائياً دون أي تعديل يدوي.
+pw.Widget _infoColumn(
   InvoiceFonts f, {
-  required String label,
-  required String value,
-  required double y,
-  required double labelRight,
-  required double labelWidth,
-  required double colonRight,
-  required double valueRight,
-  required double valueLeft,
+  required List<List<String>> rows,
+  required double width,
+  required double rightEdge,
 }) {
   final style = pw.TextStyle(
     font: f.bold,
@@ -556,37 +589,76 @@ pw.Widget _infoCell(
     fontSize: _F.info,
   );
 
-  // تعويض 4px: الحافة العلوية لصندوق النص أعلى من أول بكسل حبر
-  final top = _r(y - 4);
+  /// نص سطر واحد، بلا التفاف، محاذى لليمين.
+  pw.Widget cell(String text) => pw.Text(
+    text,
+    textAlign: pw.TextAlign.right,
+    maxLines: 1,
+    softWrap: false,
+    textDirection: pw.TextDirection.rtl,
+    style: style,
+  );
 
-  /// نص محاذى لحافته اليمنى، يتمدد يساراً بحرية دون قصّ.
-  pw.Widget rightAligned(String text, double rightEdge, double maxLeft) =>
-      pw.Positioned(
-        top: top,
-        right: _r(_kRefW - rightEdge),
-        child: pw.SizedBox(
-          width: _r(rightEdge - maxLeft),
-          child: pw.Text(
-            text,
-            textAlign: pw.TextAlign.right,
-            maxLines: 1,
-            overflow: pw.TextOverflow.clip,
-            textDirection: pw.TextDirection.rtl,
-            style: style,
-          ),
-        ),
-      );
-
-  return pw.Stack(
-    children: [
-      // الملصق — عرضه مستقل عن موقع النقطتين، فلا يُقصّ.
-      // (أوسع حبر مقيس من الأصل 88px يميناً و 66px يساراً)
-      rightAligned(label, labelRight, labelRight - labelWidth),
-      // النقطتان — موضع ثابت مقيس
-      rightAligned(':', colonRight, colonRight - 14),
-      // القيمة — تتمدد يساراً
-      rightAligned(value, valueRight, valueLeft),
-    ],
+  return pw.Positioned(
+    // تعويض 4px: الحافة العلوية لصندوق النص أعلى من أول بكسل حبر
+    top: _r(_Y.infoRow1 - 4),
+    right: _r(_kRefW - rightEdge),
+    child: pw.SizedBox(
+      width: _r(width),
+      child: pw.Table(
+        // الترتيب هنا **بصري من اليسار إلى اليمين** لأن `pw.Table` لا
+        // يحترم `Directionality` (وهي الحقيقة نفسها المعتمدة في جدول
+        // الفاتورة الرئيسي). لذا: القيمة ثم النقطتان ثم الملصق.
+        columnWidths: const {
+          0: pw.FlexColumnWidth(), // القيمة — تأخذ ما تبقّى
+          1: pw.IntrinsicColumnWidth(), // النقطتان — بعرض محرفها
+          2: pw.IntrinsicColumnWidth(), // الملصق — بعرض أطول ملصق
+        },
+        children: [
+          for (final r in rows)
+            pw.TableRow(
+              // ارتفاع الصف **يقيس نفسه** من ارتفاع سطر الخط.
+              //
+              // ⚠️ درس مقيس: عند تثبيت ارتفاع الخلية بـ `_Y.infoStep`
+              // (33px) صار القيد أصغر من ارتفاع سطر Amiri الطبيعي
+              // (40.7px)، فظنّ `FittedBox` أن النص لا يسع فصغّر **كل**
+              // القيم من 23.14px إلى 18.77px بلا حاجة. لذا لا قيد رأسي
+              // هنا؛ التباعد بين الصفوف يأتي من `infoRowPad` أدناه.
+              verticalAlignment: pw.TableCellVerticalAlignment.middle,
+              children: [
+                // القيمة — محاذاة لليمين لتلتصق بالنقطتين لا بحد الصفحة.
+                //
+                // `FittedBox(scaleDown)` شبكة أمان أفقية فقط: لا يفعل
+                // شيئاً إذا وسعت القيمة عمودها (وهي الحالة الطبيعية،
+                // والمقاس يبقى 23.14px كالملصق تماماً)، وإنما يُصغّرها
+                // بالقدر اللازم فقط إذا جاء اسم مشترك أو كبينة طويل
+                // استثنائياً — فبدل أن يُقصّ النص وتضيع أحرفه (كما كان
+                // يحدث: «الكبينة الشرقية الجنوبية الكبرى» ← «ـِقية
+                // الجنوبية الكبرى») يظهر كاملاً مقروءاً.
+                _infoPad(
+                  pw.FittedBox(
+                    fit: pw.BoxFit.scaleDown,
+                    alignment: pw.Alignment.centerRight,
+                    child: cell(r[1]),
+                  ),
+                ),
+                // النقطتان — بفراغ يفصلها عن الجانبين فلا التصاق
+                _infoPad(
+                  pw.Padding(
+                    padding: pw.EdgeInsets.only(
+                      right: _r(_X.infoColonPadRight),
+                      left: _r(_X.infoColonPadLeft),
+                    ),
+                    child: cell(':'),
+                  ),
+                ),
+                // الملصق — عرض عموده = عرض أطول ملصق، فلا يُقصّ ولا يفيض
+                _infoPad(cell(r[0])),
+              ],
+            ),
+        ],
+      ),
+    ),
   );
 }
 
